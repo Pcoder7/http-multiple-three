@@ -858,3 +858,20 @@ jobs:
 
           # If the loop finishes, it means we failed all attempts.
           echo "❌ Could not push changes after multiple attempts. Failing workflow."
+
+  trigger_nuc_vuln_three:
+    name: Trigger Nuc Vuln Three
+    needs: [create_commit]
+    
+    if: success() 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger next workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: permutate.yml
+          repo: Pcoder7/puredns-permut
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: main
+          
+          
