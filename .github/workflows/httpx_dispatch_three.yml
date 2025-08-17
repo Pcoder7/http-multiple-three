@@ -869,8 +869,8 @@ jobs:
       - name: Trigger next workflow
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: permutate.yml
-          repo: Pcoder7/puredns-permut
+          workflow: nuc_scan_three.yml
+          repo: Pcoder7/nuc-vuln-three 
           token: ${{ secrets.PAT_TOKEN }}
           ref: main
           
