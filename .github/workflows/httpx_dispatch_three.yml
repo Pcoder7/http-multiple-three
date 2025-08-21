@@ -511,7 +511,7 @@ jobs:
             --arg repo_owner "${{ github.repository_owner }}" \
             --arg repo_name "${{ github.event.repository.name }}" \
             --arg run_id "${{ github.run_id }}" \
-            --arg commit_pattern "feat(http-multiple-two): Automated http-multiple results from Correlation ID:" \
+            --arg commit_pattern "feat(http-multiple-three): Automated http-multiple results from Correlation ID:" \
             --arg artifact_name "${{ needs.prepare_all_chunks_and_package.outputs.chunk_package_artifact_name }}" \
             --arg matrix_as_a_string "${MATRIX_AS_STRING}" \
             '{
@@ -774,7 +774,7 @@ jobs:
           STORE_REPO_DIR: store-recon
           SOURCE_DIR: final-merged-results
           STORE_REPO_NAME: '${{ secrets.STORE_OWNER }}/${{ secrets.STORE }}'
-             
+            
           STORE_OWNER: ${{ secrets.STORE_OWNER}}
           STORE: ${{ secrets.STORE }}
           STORE_TOKEN: ${{ secrets.PAT_FOR_SECONDRY }}
@@ -807,7 +807,6 @@ jobs:
                 source_file="$domain_dir/httpx_result.txt"
                 dest_file="results/$domain_name/httpx_result.txt"
 
-                # --- START OF FIX ---
                 # Only proceed if the source file actually exists.
                 if [ ! -f "$source_file" ]; then
                     echo "  -> INFO: Source file '$source_file' not found. Skipping."
@@ -817,7 +816,7 @@ jobs:
                 # FIX: Sanitize the file to remove NULL characters that make Git treat it as binary.
                 echo "  -> Sanitizing '$source_file'..."
                 tr -d '\0' < "$source_file" > "$source_file.tmp" && mv "$source_file.tmp" "$source_file"
-                # --- END OF FIX ---
+          
                 
                 mkdir -p "$(dirname "$dest_file")"
                 # Ensure the destination file exists before awk tries to read it.
