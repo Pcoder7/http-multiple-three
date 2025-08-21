@@ -102,7 +102,7 @@ jobs:
           if [ ! -d "$ARTIFACTS_DIR" ]; then
             echo "ERROR: The directory '$ARTIFACTS_DIR' was NOT found."
             echo "This likely means the artifact download failed or the artifact was empty."
-            exit 0 # Exit with an error to make the problem obvious
+            exit 0 
           fi
 
           echo ""
