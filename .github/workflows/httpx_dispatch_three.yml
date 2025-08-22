@@ -83,75 +83,58 @@ jobs:
           fi
           echo "-----------------------------------------------------"
       
-      - name: Download Subdomain Artifacts from Source Repo
-        uses: actions/download-artifact@v4
-        with:
 
-          github-token: ${{ secrets.PAT_TOKEN }}
-          # This tells the action to get artifacts from the specific workflow run that triggered this one.
-          run-id: ${{ github.event.inputs.run_id }}
-          repository: ${{ github.event.inputs.results_repo }}
-          pattern: puredns-final-sorted-*
-          path: downloaded-artifacts
-
-      - name: DEBUG - Show Downloaded Artifact Structure
-        if: always() # This ensures the step runs even if the download step had warnings
+      - name: Extract Latest puredns-permut Entries
+        id: extract_entries
         shell: bash
         run: |
-          echo "======================================================================"
-          echo "               DEBUGGING DOWNLOADED ARTIFACTS                         "
-          echo "======================================================================"
+          # The Correlation ID is the unique run_id from the puredns-permut workflow
+          # that triggered this http-multiple-two workflow.
+          CORRELATION_ID="${{ github.event.inputs.run_id }}"
           
-          ARTIFACTS_DIR="downloaded-artifacts"
+          FULL_PATTERN="feat: Add new assets from Recursive recon scan from Correlation ID: ${CORRELATION_ID}"
+          TARGET_PATHSPEC="results/*/puredns_result.txt"
 
-          echo "INFO: Checking if the artifacts directory '$ARTIFACTS_DIR' exists..."
-          if [ ! -d "$ARTIFACTS_DIR" ]; then
-            echo "ERROR: The directory '$ARTIFACTS_DIR' was NOT found."
-            echo "This likely means the artifact download failed or the artifact was empty."
-            exit 0 
+          echo "-> Searching for commits with the exact pattern: '$FULL_PATTERN'"
+          
+          # This command now finds ALL commits that match the FULL pattern.
+          # This correctly groups the Primary, Secondary, and Tertiary commits.
+          COMMIT_LIST=$(git log --no-merges --grep="$FULL_PATTERN" --format="%H")
+          # ====================================================================
+
+          if [ -z "$COMMIT_LIST" ]; then
+            echo "::error::No commits found for Correlation ID '$CORRELATION_ID' with the specified pattern. Cannot proceed."
+            exit 1
           fi
 
-          echo ""
-          echo "--- Option A: Recursive Listing (Comprehensive & Always Available) ---"
-          echo "This shows all downloaded files and their directories."
-          ls -R "$ARTIFACTS_DIR"
+          LATEST_COMMIT=$(echo "$COMMIT_LIST" | head -n 1)
+          OLDEST_COMMIT=$(echo "$COMMIT_LIST" | tail -n 1)
 
-          echo ""
-          echo "--- Option B: Tree View (More Visual, if 'tree' is installed) ---"
-          # 'tree' gives a nicer visual output but may not be installed.
-          # We check for it first to avoid errors.
-          if command -v tree &> /dev/null; then
-            echo "The 'tree' command is available. Displaying visual structure:"
-            tree "$ARTIFACTS_DIR"
+          echo "-> Found commit(s) to process for this run: $COMMIT_LIST"
+
+          # This logic correctly generates a combined diff of all changes across all correlated commits.
+          if git rev-parse --verify $OLDEST_COMMIT^ >/dev/null 2>&1; then
+            git diff "$OLDEST_COMMIT^" "$LATEST_COMMIT" --unified=0 -- "$TARGET_PATHSPEC" > raw_diff.log || true
           else
-            echo "The 'tree' command is not available in this container. Skipping tree view."
+            git show "$LATEST_COMMIT" --unified=0 -- "$TARGET_PATHSPEC" > raw_diff.log || true
           fi
           
-          echo ""
-          echo "--- Verifying Target Files ---"
-          echo "This shows the exact 'subdomains_ports.txt' files that will be processed by the next step:"
-          find "$ARTIFACTS_DIR" -type f -name "subdomains_ports.txt" -print
-          
-          echo "======================================================================"
+          # This filters the diff to get the clean list of subdomains and saves it as the input.
+          grep '^\+' raw_diff.log | awk '{print $1}' | sed 's/^+//' > subdomains.txt
 
-          
+          COUNT=$(wc -l < subdomains.txt)
+          if [ "$COUNT" -eq 0 ]; then
+             echo "::warning::While commits were found, no new subdomains were extracted after filtering."
+          fi
+          echo "✅ Successfully extracted $COUNT new entries into subdomains.txt"
+      
       - name: Build Full Matrix & Create Chunks
         id: build_full_matrix
         shell: bash
         run: |
-          # --- Start of Script ---
-          ARTIFACTS_DIR="downloaded-artifacts"
-          COMBINED_TARGET_FILE="subdomains.txt" 
-
-          echo "INFO: Preparing input from downloaded artifacts..."
-          if [ ! -d "$ARTIFACTS_DIR" ] || [ -z "$(ls -A $ARTIFACTS_DIR)" ]; then
-             echo "WARNING: Artifacts directory '$ARTIFACTS_DIR' is missing or empty..."
-          else
-             echo "INFO: Finding all 'subdomains_ports.txt' files and combining them into '$COMBINED_TARGET_FILE'..."
-             find "$ARTIFACTS_DIR" -type f -name "subdomains_ports.txt" -exec cat {} + > "$COMBINED_TARGET_FILE"
-
-          fi
-           echo "--- Pre-processing complete. Starting original script logic. ---"
+          # The obsolete code block that processed "downloaded-artifacts" has been removed.
+          # The script now starts directly with your original logic, which will find
+          # the 'subdomains.txt' file created by the previous git extraction step.
 
           JSON_MATRIX='[]' # Initialize as an empty JSON array string
           echo "INFO: Initializing JSON_MATRIX as: '$JSON_MATRIX'"
@@ -311,7 +294,7 @@ jobs:
           fi
 
           echo "full_matrix=$JSON_MATRIX" >> $GITHUB_OUTPUT
-          echo "total_chunks=$TOTAL_CHUNKS" >> $GITHUB_OUTPUT                 
+          echo "total_chunks=$TOTAL_CHUNKS" >> $GITHUB_OUTPUT           
 
       - name: Package All Chunks and Resolvers      
         id: package_chunks # This ID is referenced by outputs and later steps
