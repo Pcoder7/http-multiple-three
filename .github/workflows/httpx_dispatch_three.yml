@@ -105,7 +105,7 @@ jobs:
           
           # This command now finds ALL commits that match the FULL pattern.
           # This correctly groups the Primary, Secondary, and Tertiary commits.
-          COMMIT_LIST=$(git log --no-merges --grep="$FULL_PATTERN" --format="%H")
+          COMMIT_LIST=$(git log --no-merges --grep="$FULL_PATTERN" --format="%H" || true)
           # ====================================================================
 
           if [ -z "$COMMIT_LIST" ]; then
@@ -126,12 +126,16 @@ jobs:
           fi
           
           # This filters the diff to get the clean list of subdomains and saves it as the input.
-          grep '^\+' raw_diff.log | awk '{print $1}' | sed 's/^+//' > subdomains.txt
+          grep '^\+' raw_diff.log | grep -vE '^\+\+\+' | awk '{print $1}' | sed 's/^+//' > subdomains.txt || true
 
           COUNT=$(wc -l < subdomains.txt)
           if [ "$COUNT" -eq 0 ]; then
              echo "::warning::While commits were found, no new subdomains were extracted after filtering."
           fi
+
+          echo "==============================================="
+          cat subdomains.txt 
+          echo "==============================================="
           echo "✅ Successfully extracted $COUNT new entries into subdomains.txt"
       
       - name: Build Full Matrix & Create Chunks
