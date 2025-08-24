@@ -82,7 +82,13 @@ jobs:
             split --version || echo "DEBUG: Could not get split version."
           fi
           echo "-----------------------------------------------------"
-      
+       
+      - name: Mark Directory as Safe
+        shell: bash
+        run: |
+          # This command tells Git to trust the current repository directory,
+          # resolving the "dubious ownership" error.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"    
 
       - name: Extract Latest puredns-permut Entries
         id: extract_entries
