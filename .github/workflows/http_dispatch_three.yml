@@ -612,7 +612,7 @@ jobs:
           echo "-> Running httpx against '$CHUNK_FILE_PATH'..."
           httpx \
             -l "$CHUNK_FILE_PATH" -threads 80 \
-            -sc -cl -vhost -websocket -fhr \
+            -sc -cl -vhost -fhr \
             -retries 2 -timeout 30 -delay 100ms \
             -random-agent -silent -no-color \
             -o "$HTTPX_OUT"
