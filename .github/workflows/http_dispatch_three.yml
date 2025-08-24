@@ -106,7 +106,7 @@ jobs:
           CORRELATION_ID="${{ github.event.inputs.run_id }}"
           
           FULL_PATTERN="feat: Add new assets from Recursive recon scan from Correlation ID: ${CORRELATION_ID}"
-          TARGET_PATHSPEC="results/*/puredns_result.txt"
+          TARGET_PATHSPEC="results/*/all_subdomains.txt"
 
           echo "-> Searching for commits with the exact pattern: '$FULL_PATTERN'"
           
